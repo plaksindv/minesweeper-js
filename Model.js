@@ -7,6 +7,7 @@ let openCount;
 let lostGame;
 let wonGame;
 let flagCount;
+let bombs;
 
 import { redrawCell, drawField, changeGameButtonPicture } from './View.js';
 
@@ -63,6 +64,7 @@ export let createGameField = (n, bombsCount) => {
 	lostGame = 0;
     wonGame = 0;
     flagCount = 0;
+    bombs = bombsCount;
 
 	cells = [];
     bombsArray = [];
@@ -85,7 +87,7 @@ export let setFlag = (cell) => {
     let y = cell.parentNode.rowIndex;
 
 	if (cells[x][y]['marked'] === 0) {
-        if (flagCount === 10) {
+        if (flagCount === bombs) {
             return;
         }
 		if (cells[x][y]['opened'] === 0) {
@@ -180,7 +182,7 @@ export let openCell = (cell) => {
             }
         }
 
-		if (openCount === cells.length * cells[0].length && flagCount === 10) {
+		if (openCount === cells.length * cells[0].length) {
             makeChangesForWonGame();
 		}
 	}
