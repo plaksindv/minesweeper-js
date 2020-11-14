@@ -19,7 +19,7 @@
 
 
 .lost {
-	background: url(images/dead.png);
+	background: url(./images/dead.png);
 	background-size: 44px 44px;
 }
 
