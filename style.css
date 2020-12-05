@@ -6,15 +6,22 @@
 	margin: 0px;
 	padding: 0px;
 	border: 1px solid grey;
-
 }
 
 
-.button {
+.gameButton {
 	background: url(./images/default.png);
 	background-size: 44px 44px;
 	width: 48px;
 	height: 48px;
+}
+
+
+.button {
+	width: 150px;
+	height: 48px;
+	background-color: lightgrey;
+	border: 2px solid grey;
 }
 
 
@@ -24,7 +31,7 @@
 }
 
 
-.button:active{
+.gameButton:active{
 	background: url(./images/pushed.png);
 	background-size: 44px 44px;
 }
@@ -76,11 +83,30 @@
 	border: 1px solid grey;
 }
 
+
+.hidden {
+	display: none;
+}
+
+
+.replayMode {
+	pointer-events: none;
+}
+
+
 table {
 	background-color: lightgrey;
 	border: 1px solid grey;
 	border-spacing: 0px;
 }
+
+
+td, th {
+	margin: 3px;
+	padding: 3px;
+	border: 1px solid grey;
+}
+
 
 body {
 	align-items: center;

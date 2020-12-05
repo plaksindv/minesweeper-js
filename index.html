@@ -3,12 +3,25 @@
 	<title>Сапер</title>
 	<link rel="stylesheet" href="style.css">
 	<meta charset="utf-8">
+	<script src="https://unpkg.com/idb@5/build/iife/index-min.js"></script>
 </head>
 <body>
 	<div align = "center">
-	<input type = 'button' class='button' id = 'button'>
-	<table id = "gameField"></table>
-	<script type="module" src="Controller.js"></script>
+		<div align = "center" id = 'menu'>
+			<p><input type = 'button' id = 'startGame' value = 'Начать игру' class='button'></input>
+			<p><input type = 'button' id = 'showGames' value = 'Список игр' class='button'></input>
+			<p><input type = 'button' id = 'showReplay' value = 'Показать игру' class='button'></input>
+		</div>
+		<div align = "center" id = 'header' class='hidden'></div>
+		<div align = "center" id = 'game' class='hidden'>
+			<input type = 'button' class='gameButton' id = 'gameButton'>
+			<table id = "gameField"></table>
+		</div>
+		<p>
+		<div align = "center" id = 'info' class='hidden'>
+			<table id = "gameInfo"></table>
+		</div>
+		<script type="module" src="Controller.js"></script>
 	</div>
 </body>
 </html>

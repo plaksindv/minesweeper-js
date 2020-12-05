@@ -1,6 +1,8 @@
 let gameField = document.getElementById("gameField");
-let gameButton = document.getElementById('button');
+let infoField = document.getElementById("gameInfo");
+let gameButton = document.getElementById('gameButton');
 
+let db;
 let cells;
 let bombsArray;
 let openCount;
@@ -8,12 +10,14 @@ let lostGame;
 let wonGame;
 let flagCount;
 let bombs;
+let turnNumber;
+let currentId;
 
-import { redrawCell, drawField, changeGameButtonPicture } from './View.js';
+import { redrawCell, drawField, changeGameButtonPicture, drawNumberInCell, deleteFlag, drawGamesInfoTable, drawConcreteGameTable } from './View.js';
 
-let contains = (arr, elem) => {
-    for (let i of arr) {
-        if (i === elem) {
+let contains = (array, element) => {
+    for (let i of array) {
+        if (i === element) {
             return true;
         }
     }
@@ -21,13 +25,13 @@ let contains = (arr, elem) => {
 }
 
 let randomBombs = (n, bombsCount, position) => {
-	let id0, id1;
+	let x, y;
 	for (let i = position; i < bombsCount; i++) {
-		id0 = Math.floor(Math.random() * n);
-		id1 = Math.floor(Math.random() * n);
-		let temp = id0.toString() + "_" + id1.toString();
-		if (!contains(bombsArray, temp)) {
-            bombsArray.push(temp);
+		x = Math.floor(Math.random() * n);
+		y = Math.floor(Math.random() * n);
+		let concreteBomb = x.toString() + "_" + y.toString();
+		if (!contains(bombsArray, concreteBomb)) {
+            bombsArray.push(concreteBomb);
         } else {
 			randomBombs(n, bombsCount, i);
 			break;
@@ -38,22 +42,27 @@ let randomBombs = (n, bombsCount, position) => {
     }
 }
 
+let setNearbyCount = (bombCoordinateX, bombCoordinateY) => {
+    for (let i = bombCoordinateX - 1; i <= bombCoordinateX + 1; i++) {
+        for (let j = bombCoordinateY - 1; j <= bombCoordinateY + 1; j++) {
+            if (typeof cells[j] != "undefined" && typeof cells[j][i] != "undefined") {
+                cells[j][i]['nearbycount'] +=1;
+            }
+        }
+    }
+}
 
 let deployBombs = (bombsCount) => {
 	for (let i = 0; i < bombsCount; i++){
-		let ids = bombsArray[i].split("_");
-		cells[parseInt(ids[1])][parseInt(ids[0])]['isbomb'] = 1;
-		for (let j = parseInt(ids[0]) - 1; j <= parseInt(ids[0]) + 1; j++) {
-			for (let k = parseInt(ids[1]) - 1; k <= parseInt(ids[1]) + 1; k++) {
-				if (typeof cells[k] != "undefined" && typeof cells[k][j] != "undefined") {
-                    cells[k][j]['nearbycount'] +=1;
-                }
-            }
-        }
+		let coordinates = bombsArray[i].split("_");
+        let x = coordinates[0];
+        let y = coordinates[1];
+		cells[parseInt(y)][parseInt(x)]['isbomb'] = 1;
+		setNearbyCount(parseInt(x), parseInt(y));
 	}
 }
 
-export let createGameField = (n, bombsCount) => {
+export let createGameField = (n, bombsCount, username) => {
     if (lostGame === 1)
         changeGameButtonPicture(gameButton, 'lost');
 
@@ -64,25 +73,29 @@ export let createGameField = (n, bombsCount) => {
 	lostGame = 0;
     wonGame = 0;
     flagCount = 0;
+    turnNumber = 0;
     bombs = bombsCount;
+    getCurrentId();
 
 	cells = [];
     bombsArray = [];
     
 	for (let i = 0; i < n; i++) {
-	 	let temp = [];
+	 	let concreteCell = [];
 	 	for (let j = 0; j < n; j++) {
-            temp.push({'opened': 0, 'isbomb': 0, 'nearbycount': 0, 'marked': 0});
+            concreteCell.push({'opened': 0, 'isbomb': 0, 'nearbycount': 0, 'marked': 0});
  		}
-        cells.push(temp);
+        cells.push(concreteCell);
     }
+
 
     drawField(gameField, n);
 	randomBombs(n, bombsCount, 0);
-	deployBombs(bombsCount);
+    deployBombs(bombsCount);
+    writeGameInfo(username, n, bombsCount);
 }
 
-export let setFlag = (cell) => {
+export let setFlag = (cell, replayMode) => {
     let x = cell.cellIndex;
     let y = cell.parentNode.rowIndex;
 
@@ -93,49 +106,56 @@ export let setFlag = (cell) => {
 		if (cells[x][y]['opened'] === 0) {
 			cells[x][y]['marked'] = 1;
             cells[x][y]['opened'] = 1;
+            turnNumber++;
             flagCount++;
-			openCount++;
-			cell.classList.add('flag');
+            openCount++;
+            writeTurnInfo(currentId, 'Поставлен флаг', turnNumber, x, y, replayMode);
+            redrawCell(cell, 'flag');
 		}
 	} else {
 		if (cells[x][y]['opened'] != 0) {
 			cells[x][y]['marked'] = 0;
-			cells[x][y]['opened'] = 0;
+            cells[x][y]['opened'] = 0;
+            turnNumber++;
             flagCount--;
             openCount--;
-			cell.classList.remove('flag');
+            writeTurnInfo(currentId, 'Убран флаг', turnNumber, x, y, replayMode);
+            deleteFlag(cell);
 		}
+    }
+
+    if (openCount === cells.length * cells[0].length) {
+        makeChangesForWonGame();
     }
 }
 
-
-let openSurroundedCells = (i, j) => {
-	if (typeof cells[i] != "undefined" && typeof cells[i][j] != "undefined") {
-        let cell = gameField.rows[j].cells[i];
-		openArea(cell);
-	}
+let openSurroundedCells = (x, y) => {
+    for (let i = x - 1; i <= x + 1; i++) {
+        for (let j = y - 1; j <= y + 1; j++) {
+            if (typeof cells[i] != "undefined" && typeof cells[i][j] != "undefined") {
+                let cell = gameField.rows[j].cells[i];
+                openArea(cell);
+            }
+        }
+    }        
 }
-
 
 let openArea = (cell) => {
     let x = cell.cellIndex;
     let y = cell.parentNode.rowIndex;
 	if (cells[x][y]['opened'] === 0 && cells[x][y]['marked'] === 0) {
 		cells[x][y]['opened'] = 1;
-		openCount++;
+        openCount++;
+        
 		if (cells[x][y]['nearbycount'] != 0){
-			cell.innerHTML = cells[x][y]['nearbycount'].toString();
-			cell.classList.add('number');
+			drawNumberInCell(cell, cells[x][y]['nearbycount']);
 			return;
         } else {
-        cell.classList.add('empty');
+        redrawCell(cell, 'empty');
         }
 		
-        for (let i = x - 1; i <= x + 1; i++) {
-            for (let j = y - 1; j <= y + 1; j++) {
-                    openSurroundedCells(i, j);
-            }
-        }
+        openSurroundedCells(x, y);
+
     } else {
         return;
     }
@@ -143,14 +163,19 @@ let openArea = (cell) => {
 
 let makeChangesForLostGame = (cell) => {
     lostGame = 1;
+    updateGameStatus('gamesInfo', 'gameId', currentId, 'Игра проиграна');
     for (let i = 0; i < bombsArray.length; i++) {
-        let ids = bombsArray[i].split("_");
-        let bombCell = gameField.rows[ids[0]].cells[ids[1]];
-        if (cells[ids[1]][ids[0]]['marked'] != 1) {
+        let coordinates = bombsArray[i].split("_");
+        let x = coordinates[0];
+        let y = coordinates[1];
+        let bombCell = gameField.rows[x].cells[y];
+
+        if (cells[y][x]['marked'] != 1) {
             redrawCell(bombCell, 'bomb');
         } else {
             redrawCell(bombCell, 'defused');
         }
+
     }
     redrawCell(gameButton, 'lost');
     redrawCell(cell, 'boom');
@@ -158,32 +183,180 @@ let makeChangesForLostGame = (cell) => {
 
 let makeChangesForWonGame = () => {
     wonGame = 1;
+    updateGameStatus('gamesInfo', 'gameId', currentId, 'Игра выиграна');
+    updateGameStatus('turnsInfo', 'turnNumber', turnNumber, 'Игра выиграна');
     for (let i = 0; i < bombsArray.length; i++) {
-        let ids = bombsArray[i].split("_");
-        let bombCell = gameField.rows[ids[0]].cells[ids[1]];
+        let coordinates = bombsArray[i].split("_");
+        let x = coordinates[0];
+        let y = coordinates[1];
+        let bombCell = gameField.rows[x].cells[y];
         redrawCell(bombCell, 'defused');
     }
     redrawCell(gameButton, 'won');
 }
 
-export let openCell = (cell) => {
+export let openCell = (cell, replayMode) => {
 	if (lostGame || wonGame) {
         return;
     } else {
         let x = cell.cellIndex;
         let y = cell.parentNode.rowIndex;
+        turnNumber++;
 
 		if(cells[x][y]['opened'] != 1) {
-			if(cells[x][y]['isbomb'] === 1){
+			if(cells[x][y]['isbomb'] === 1) {
+                writeTurnInfo(currentId, 'Игра проиграна', turnNumber, x, y, replayMode);
                 makeChangesForLostGame(cell);
 			}
 			else {
-				openArea(cell);
+                writeTurnInfo(currentId, 'Открыта область', turnNumber, x, y, replayMode);
+                openArea(cell);
             }
         }
 
 		if (openCount === cells.length * cells[0].length) {
             makeChangesForWonGame();
-		}
+        }
 	}
+}
+
+export async function initializeDatabase()
+{
+    db = await idb.openDB('gamesDb', 1, { upgrade(db) {
+        db.createObjectStore('gamesInfo', {keyPath: 'gameId', autoIncrement: true});
+        db.createObjectStore('turnsInfo', {keyPath: 'id', autoIncrement: true});
+    },
+    }); 
+}
+
+export async function getGames()
+{
+    let gamesList = await db.getAll('gamesInfo');
+    drawGamesInfoTable(infoField, gamesList);
+}
+
+async function writeGameInfo(username, dimension, bombsCount)
+{
+    let date = new Date().toLocaleString();
+    let gameStatus = 'Не окончена';
+    try {
+        await db.add('gamesInfo', {username, date, dimension, bombsCount, bombsArray, gameStatus});
+    } catch(err) {
+        throw err;
+    }
+}
+
+async function updateGameStatus(storageName, key, concreteKey, gameStatus)
+{
+    let cursor = await db.transaction(storageName, 'readwrite').store.openCursor();
+
+    while (cursor) {
+        if (cursor.value[key] === concreteKey) {
+            let updateData = cursor.value;
+            updateData.gameStatus = gameStatus;
+            cursor.update(updateData);
+        }
+        cursor = await cursor.continue();
+    }    
+}
+
+async function getCurrentId()
+{
+    let gamesList = await db.getAll('gamesInfo');
+    currentId = gamesList.length + 1;
+}
+
+async function writeTurnInfo(gameId, gameStatus, turnNumber, x, y, replayMode)
+{
+    if (replayMode) {
+        return;
+    }
+    let coordinates = x.toString() + "," + y.toString();
+    try {
+        await db.add('turnsInfo', {gameId, turnNumber, coordinates, gameStatus});
+    } catch(err) {
+        throw err;
+    }
+}
+
+export async function startReplay(gameId) {
+    if (lostGame === 1)
+        changeGameButtonPicture(gameButton, 'lost');
+
+    if (wonGame === 1)
+        changeGameButtonPicture(gameButton, 'won');
+
+    let dimension;
+    let bombsCount;
+    let cursor = await db.transaction('gamesInfo', 'readonly').store.openCursor();
+
+    while (cursor) {
+        if (cursor.value.gameId === gameId) {
+            dimension = cursor.value.dimension;
+            bombsCount = cursor.value.bombsCount;
+            break;
+        }
+        cursor = await cursor.continue();
+    }
+
+    bombsArray = cursor.value.bombsArray;
+
+    openCount = 0;
+	lostGame = 0;
+    wonGame = 0;
+    flagCount = 0;
+    turnNumber = 0;
+    bombs = bombsCount;
+    getCurrentId();
+
+	cells = [];
+    
+	for (let i = 0; i < dimension; i++) {
+	 	let concreteCell = [];
+	 	for (let j = 0; j < dimension; j++) {
+            concreteCell.push({'opened': 0, 'isbomb': 0, 'nearbycount': 0, 'marked': 0});
+ 		}
+        cells.push(concreteCell);
+    }
+
+    drawField(gameField, dimension);
+    deployBombs(bombsCount);
+    createReplay(gameId);
+}
+
+async function createReplay(gameId)
+{
+    let cursor = await db.transaction('turnsInfo', 'readonly').store.openCursor();
+
+    let concreteGameTurns = [];
+    let indexForArray = 0;
+
+    while (cursor) {
+        if (cursor.value.gameId === gameId) {
+            concreteGameTurns[indexForArray] = cursor.value;
+            indexForArray++;
+        }
+        cursor = await cursor.continue();
+    }
+
+    for (let i = 0; i < concreteGameTurns.length; i++) {
+        let coordinatesArray = concreteGameTurns[i]['coordinates'].split(',');
+        let y = coordinatesArray[0];
+        let x = coordinatesArray[1];
+        let cell = gameField.rows[x].cells[y];
+        
+        
+        if (concreteGameTurns[i]['gameStatus'] === 'Поставлен флаг' || concreteGameTurns[i]['gameStatus'] === 'Убран флаг'){
+            setTimeout(setFlag, (i + 1) * 1000, cell, true);
+        }
+        else {
+            if (contains(bombsArray, x + "_" + y) && concreteGameTurns[i]['gameStatus'] === 'Игра выиграна') {
+                setTimeout(setFlag, (i + 1) * 1000, cell, true);
+            } else {
+                setTimeout(openCell, (i + 1) * 1000, cell, true);
+            }
+        }
+    }
+
+    drawConcreteGameTable(infoField, concreteGameTurns, gameId);
 }
