@@ -75,8 +75,7 @@ export let createGameField = (n, bombsCount, username) => {
     flagCount = 0;
     turnNumber = 0;
     bombs = bombsCount;
-    getCurrentId();
-
+    
 	cells = [];
     bombsArray = [];
     
@@ -93,6 +92,7 @@ export let createGameField = (n, bombsCount, username) => {
 	randomBombs(n, bombsCount, 0);
     deployBombs(bombsCount);
     writeGameInfo(username, n, bombsCount);
+    getCurrentId();
 }
 
 export let setFlag = (cell, replayMode) => {
@@ -263,7 +263,7 @@ async function updateGameStatus(storageName, key, concreteKey, gameStatus)
 async function getCurrentId()
 {
     let gamesList = await db.getAll('gamesInfo');
-    currentId = gamesList.length + 1;
+    currentId = gamesList.length;
 }
 
 async function writeTurnInfo(gameId, gameStatus, turnNumber, x, y, replayMode)
@@ -361,15 +361,10 @@ async function createReplay(gameId)
     drawConcreteGameTable(infoField, concreteGameTurns, gameId);
 }
 
-export async function checkCorrectId(gameId) 
-{
-    let cursor = await db.transaction('gamesInfo', 'readonly').store.openCursor();
-
-    while (cursor) {
-        if (cursor.value.gameId === gameId) {
-            return true;
-        }
-        cursor = await cursor.continue();
+export let checkCorrectId = (gameId) => {
+    getCurrentId();
+    if (gameId >= 1 && gameId <= currentId) {
+        return true;
     }
 
     return false;

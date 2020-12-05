@@ -31,11 +31,9 @@ let startGame = () => {
 
 let getReplay = () => {
     let gameId;
-    while (gameId === undefined || gameId === null) {
-        gameId = +prompt("Введите id игры");
-        if (!checkCorrectId(gameId)) {
-            gameId = +prompt("Неверно! Введите еще раз!");
-        }
+    gameId = +prompt("Введите id игры");
+    while (!checkCorrectId(gameId)) {
+        gameId = +prompt("Неверно! Введите еще раз!");
     }
 
     startReplay(gameId);
