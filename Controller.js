@@ -1,4 +1,4 @@
-import { createGameField, openCell, setFlag, initializeDatabase, getGames, startReplay } from './Model.js';
+import { createGameField, openCell, setFlag, initializeDatabase, getGames, startReplay, checkCorrectId } from './Model.js';
 
 let gameField = document.getElementById("gameField");
 let gameButton = document.getElementById("gameButton");
@@ -33,6 +33,9 @@ let getReplay = () => {
     let gameId;
     while (gameId === undefined || gameId === null) {
         gameId = +prompt("Введите id игры");
+        if (!checkCorrectId(gameId)) {
+            gameId = +prompt("Неверно! Введите еще раз!");
+        }
     }
 
     startReplay(gameId);
