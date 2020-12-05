@@ -361,7 +361,7 @@ async function createReplay(gameId)
     drawConcreteGameTable(infoField, concreteGameTurns, gameId);
 }
 
-async function checkCorrectId(gameId) 
+export async function checkCorrectId(gameId) 
 {
     let cursor = await db.transaction('gamesInfo', 'readonly').store.openCursor();
 
