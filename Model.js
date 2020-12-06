@@ -70,7 +70,7 @@ export let createGameField = (n, bombsCount, username) => {
         changeGameButtonPicture(gameButton, 'won');
 
     openCount = 0;
-	lostGame = 0;
+    lostGame = 0;
     wonGame = 0;
     flagCount = 0;
     turnNumber = 0;
@@ -89,7 +89,7 @@ export let createGameField = (n, bombsCount, username) => {
 
 
     drawField(gameField, n);
-	randomBombs(n, bombsCount, 0);
+    randomBombs(n, bombsCount, 0);
     deployBombs(bombsCount);
     writeGameInfo(username, n, bombsCount);
     getCurrentId();
@@ -125,7 +125,7 @@ export let setFlag = (cell, replayMode) => {
     }
 
     if (openCount === cells.length * cells[0].length) {
-        makeChangesForWonGame();
+        makeChangesForWonGame(replayMode);
     }
 }
 
@@ -161,9 +161,9 @@ let openArea = (cell) => {
     }
 }
 
-let makeChangesForLostGame = (cell) => {
+let makeChangesForLostGame = (cell, replayMode) => {
     lostGame = 1;
-    updateGameStatus('gamesInfo', 'gameId', currentId, 'Игра проиграна');
+    updateGameStatus('gamesInfo', 'gameId', currentId, 'Игра проиграна', replayMode);
     for (let i = 0; i < bombsArray.length; i++) {
         let coordinates = bombsArray[i].split("_");
         let x = coordinates[0];
@@ -181,10 +181,10 @@ let makeChangesForLostGame = (cell) => {
     redrawCell(cell, 'boom');
 }
 
-let makeChangesForWonGame = () => {
+let makeChangesForWonGame = (replayMode) => {
     wonGame = 1;
-    updateGameStatus('gamesInfo', 'gameId', currentId, 'Игра выиграна');
-    updateGameStatus('turnsInfo', 'turnNumber', turnNumber, 'Игра выиграна');
+    updateGameStatus('gamesInfo', 'gameId', currentId, 'Игра выиграна', replayMode);
+    updateGameStatus('turnsInfo', 'turnNumber', turnNumber, 'Игра выиграна', replayMode);
     for (let i = 0; i < bombsArray.length; i++) {
         let coordinates = bombsArray[i].split("_");
         let x = coordinates[0];
@@ -206,7 +206,7 @@ export let openCell = (cell, replayMode) => {
 		if(cells[x][y]['opened'] != 1) {
 			if(cells[x][y]['isbomb'] === 1) {
                 writeTurnInfo(currentId, 'Игра проиграна', turnNumber, x, y, replayMode);
-                makeChangesForLostGame(cell);
+                makeChangesForLostGame(cell, replayMode);
 			}
 			else {
                 writeTurnInfo(currentId, 'Открыта область', turnNumber, x, y, replayMode);
@@ -215,7 +215,7 @@ export let openCell = (cell, replayMode) => {
         }
 
 		if (openCount === cells.length * cells[0].length) {
-            makeChangesForWonGame();
+            makeChangesForWonGame(replayMode);
         }
 	}
 }
@@ -246,8 +246,12 @@ async function writeGameInfo(username, dimension, bombsCount)
     }
 }
 
-async function updateGameStatus(storageName, key, concreteKey, gameStatus)
+async function updateGameStatus(storageName, key, concreteKey, gameStatus, replayMode)
 {
+    if (replayMode) {
+        return;
+    }
+
     let cursor = await db.transaction(storageName, 'readwrite').store.openCursor();
 
     while (cursor) {
