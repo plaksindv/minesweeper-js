@@ -360,12 +360,3 @@ async function createReplay(gameId)
 
     drawConcreteGameTable(infoField, concreteGameTurns, gameId);
 }
-
-export let checkCorrectId = (gameId) => {
-    getCurrentId();
-    if (gameId >= 1 && gameId <= currentId) {
-        return true;
-    }
-
-    return false;
-}
